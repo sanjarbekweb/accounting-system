@@ -82,6 +82,69 @@ main {
   padding: 1.5rem;
 }
 
+/* ---- Accounts Reference Box ---- */
+.accounts-reference-box {
+  margin-bottom: 2rem;
+  background: #f4f6f8;
+  border: 1px solid #000;
+  padding: 0.75rem 1rem;
+  font-size: 0.88rem;
+}
+
+.accounts-reference-box summary {
+  cursor: pointer;
+  font-size: 0.92rem;
+  color: #2c3e50;
+  outline: none;
+  user-select: none;
+}
+
+.reference-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px dashed #aaa;
+}
+
+.reference-col {
+  background: #fff;
+  border: 1px solid #ccc;
+  padding: 0.75rem;
+}
+
+.reference-col h3 {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #000;
+  margin-bottom: 0.4rem;
+  border-bottom: 2px solid #969ba1;
+  padding-bottom: 0.2rem;
+}
+
+.reference-col p {
+  font-size: 0.82rem;
+  color: #333;
+  margin-bottom: 0.4rem;
+  line-height: 1.4;
+}
+
+.reference-col code {
+  background: #eaeded;
+  padding: 1px 4px;
+  font-size: 0.82rem;
+  border: 1px solid #ccc;
+}
+
+.rule-hint {
+  font-weight: 600;
+  color: #1a5276;
+  background: #ebf5fb;
+  padding: 4px;
+  border-left: 3px solid #1a5276;
+}
+
 /* ---- Journal Sections ---- */
 .journal-section {
   margin-bottom: 3rem;
@@ -106,76 +169,143 @@ main {
 /* ---- Table Container ---- */
 .table-container {
   overflow-x: auto;
-  border: 1px solid #999;
+  border: 1.5px solid #000;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
 }
 
 /* ---- Tables ---- */
 table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 900px;
+  min-width: 950px;
+  background: #fff;
 }
 
-thead tr {
-  background: #2c3e50;
-  color: #fff;
-}
-
+/* Header style matching PDF / textbook screenshot */
 thead th {
-  padding: 8px 6px;
-  font-weight: 700;
-  font-size: 0.8rem;
-  text-align: left;
-  border: 1px solid #1a2b38;
-  white-space: nowrap;
+  background: #969ba1; /* Solid textbook grey as in image */
+  color: #000;         /* Pure black text */
+  font-weight: 600;
+  font-size: 0.82rem;
+  text-align: center;
+  vertical-align: middle;
+  border: 1.5px solid #000;
+  padding: 5px 4px;
+  line-height: 1.25;
 }
 
-/* Alternating rows */
+/* Title row spanning entire table width */
+.journal-title-header {
+  background: #969ba1;
+  color: #000;
+  font-size: 0.95rem;
+  font-weight: 700;
+  padding: 7px 10px;
+  text-align: center;
+  border: 1.5px solid #000;
+  letter-spacing: 0.3px;
+}
+
+.journal-title-header:focus {
+  background: #fff;
+  outline: 2px solid #2c3e50;
+}
+
+/* Specific header widths */
+th.th-doc { width: 70px; }
+th.th-day { width: 48px; }
+th.th-details { width: 230px; }
+th.th-aor { width: 105px; }
+th.th-bank { width: 105px; }
+th.th-sales { width: 100px; }
+th.th-trc { width: 110px; }
+th.th-wages { width: 95px; }
+th.th-purchases { width: 100px; }
+th.th-tpc { width: 110px; }
+th.th-pct { width: 105px; }
+th.th-postage { width: 95px; }
+th.th-stationery { width: 95px; }
+th.th-sundry-amount { width: 100px; }
+th.th-sundry-fol { width: 45px; }
+th.th-sundry-details { width: 160px; }
+th.col-action-th { width: 45px; }
+
+/* Alternating rows & clean gridlines */
 tbody tr:nth-child(odd) {
   background: #fff;
 }
 
 tbody tr:nth-child(even) {
-  background: #f5f5f5;
+  background: #fafafa;
 }
 
 tbody td {
-  border: 1px solid #999;
-  padding: 2px 3px;
+  border: 1px solid #000;
+  padding: 1px 2px;
   vertical-align: middle;
+  height: 28px;
 }
 
 /* ---- Inputs inside table cells ---- */
 tbody td input,
 tbody td select {
   width: 100%;
+  height: 100%;
   border: none;
   background: transparent;
-  padding: 4px;
-  font-size: 0.85rem;
+  padding: 4px 6px;
+  font-size: 0.88rem;
   font-family: inherit;
-  color: #222;
+  color: #000;
   outline: none;
+}
+
+/* Remove ugly browser spinners from number inputs */
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type=number] {
+  -moz-appearance: textfield;
+}
+
+/* Accounting text and number alignments */
+tbody td.cell-number input {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+tbody td.cell-text input,
+tbody td.cell-text select {
+  text-align: left;
+}
+
+tbody td.cell-center input {
+  text-align: center;
 }
 
 tbody td input:focus,
 tbody td select:focus {
-  background: #eef4ff;
-  outline: 1px solid #2c3e50;
+  background: #f0f4f8;
+  outline: 1.5px solid #000;
 }
 
 /* Fol column — narrow */
 td.col-fol,
 th.col-fol {
-  width: 48px;
+  width: 45px;
   min-width: 40px;
+  text-align: center;
 }
 
 /* Action column — narrow */
 td.col-action,
 th.col-action {
-  width: 60px;
-  min-width: 50px;
+  width: 45px;
+  min-width: 40px;
   text-align: center;
 }
 
@@ -354,22 +484,28 @@ th.col-action {
 /* ---- Table Totals Foot (In-Table Footer) ---- */
 .table-totals-foot tr {
   background: #eaeded;
-  border-top: 2px solid #2c3e50;
-  border-bottom: 2px solid #2c3e50;
+  border-top: 1.5px solid #000;
+  border-bottom: 3px double #000;
   font-weight: 700;
 }
 
 .table-totals-foot td {
-  padding: 6px 8px;
-  font-size: 0.85rem;
-  color: #2c3e50;
-  border: 1px solid #bdc3c7;
+  padding: 5px 6px;
+  font-size: 0.88rem;
+  color: #000;
+  border: 1px solid #000;
 }
 
 .table-totals-foot td.totals-label {
   font-weight: 700;
+  text-align: center;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+}
+
+.table-totals-foot td.totals-number {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
 }
 
 /* ---- Row Feedback Status ---- */
