@@ -5,15 +5,25 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Accounting Practice System</title>
   <link rel="stylesheet" href="style.css" />
-  <script src="https://unpkg.com/docx@8/build/index.js"></script>
+  <script src="docx.umd.js"></script>
+  <script>
+    if (typeof docx === 'undefined') {
+      const s = document.createElement('script');
+      s.src = 'https://unpkg.com/docx/dist/index.umd.cjs';
+      document.head.appendChild(s);
+    }
+  </script>
 </head>
 <body>
 
   <header>
-    <h1>Accounting Practice System</h1>
+    <div class="header-title">
+      <h1>Accounting Practice System</h1>
+      <p class="subtitle">Subsidiary Journals: Cash Receipts (CRJ), Cash Payments (CPJ), Petty Cash (PCJ)</p>
+    </div>
     <div class="mode-toggle">
-      <button id="btn-guided" class="mode-btn active" onclick="switchMode('guided')">Guided</button>
-      <button id="btn-free" class="mode-btn" onclick="switchMode('free')">Free</button>
+      <button id="btn-guided" class="mode-btn active" onclick="switchMode('guided')">Guided Mode (Dropdown Options)</button>
+      <button id="btn-free" class="mode-btn" onclick="switchMode('free')">Free Mode (Manual Inputs)</button>
     </div>
   </header>
 
@@ -40,6 +50,7 @@
             </tr>
           </thead>
           <tbody id="tbody-crj"></tbody>
+          <tfoot id="tfoot-crj" class="table-totals-foot" style="display:none;"></tfoot>
         </table>
       </div>
       <button class="add-row-btn" onclick="addRow('crj')">Add Row</button>
@@ -67,6 +78,7 @@
             </tr>
           </thead>
           <tbody id="tbody-cpj"></tbody>
+          <tfoot id="tfoot-cpj" class="table-totals-foot" style="display:none;"></tfoot>
         </table>
       </div>
       <button class="add-row-btn" onclick="addRow('cpj')">Add Row</button>
@@ -94,6 +106,7 @@
             </tr>
           </thead>
           <tbody id="tbody-pcj"></tbody>
+          <tfoot id="tfoot-pcj" class="table-totals-foot" style="display:none;"></tfoot>
         </table>
       </div>
       <button class="add-row-btn" onclick="addRow('pcj')">Add Row</button>
