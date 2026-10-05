@@ -28,6 +28,31 @@
   </header>
 
   <main>
+    <!-- Quick Accounts Guide & Rules Reference -->
+    <details class="accounts-reference-box">
+      <summary><strong>Quick Reference: Common Accounts & Rules (Click to expand)</strong></summary>
+      <div class="reference-grid">
+        <div class="reference-col">
+          <h3>Cash Receipts Journal (CRJ)</h3>
+          <p><strong>Details:</strong> Write <code>Sales</code> for cash sales; write the customer/payer name for other receipts (e.g. <code>C Hopkins</code>, <code>B Blue</code>).</p>
+          <p><strong>Sundry Details accounts:</strong> <code>Capital</code>, <code>Rent income</code>, <code>Interest income</code>, <code>Commission received</code>, <code>Drawings</code>.</p>
+          <p class="rule-hint">Rule: Analysis of receipts = Sales + Trade receivables control + Sundry Amount</p>
+        </div>
+        <div class="reference-col">
+          <h3>Cash Payments Journal (CPJ)</h3>
+          <p><strong>Payee:</strong> Write the person or vendor paid (e.g. <code>Waltons</code>, <code>AA Traders</code>, <code>Cash</code> for wages/float).</p>
+          <p><strong>Sundry Details accounts:</strong> <code>Furniture</code>, <code>Equipment</code>, <code>Vehicle</code>, <code>Drawings</code>, <code>Wages</code>, <code>Rent expense</code>, <code>Stationery</code>, <code>Repairs</code>, <code>Trading stock</code>.</p>
+          <p class="rule-hint">Rule: Bank = Wages + Purchases + Trade payables control + Sundry Amount</p>
+        </div>
+        <div class="reference-col">
+          <h3>Petty Cash Journal (PCJ)</h3>
+          <p><strong>Details:</strong> Write the specific expense item (e.g. <code>Stamps</code>, <code>Cleaning</code>, <code>Envelopes</code>, <code>Milk and coffee</code>).</p>
+          <p><strong>Sundry Details accounts:</strong> <code>Refreshments</code>, <code>Drawings</code>, <code>Cleaning</code>, <code>Donations</code>, <code>Petrol</code>, <code>Repairs</code>, <code>Sundry expenses</code>.</p>
+          <p class="rule-hint">Rule: Petty cash/total = Wages + Postage + Stationery + Sundry Amount</p>
+        </div>
+      </div>
+    </details>
+
     <!-- Cash Receipts Journal -->
     <section class="journal-section" id="section-crj">
       <h2>Cash Receipts Journal (CRJ)</h2>
@@ -35,18 +60,25 @@
       <div class="table-container">
         <table id="table-crj">
           <thead>
-            <tr>
-              <th>Doc No</th>
-              <th>Day</th>
-              <th>Details</th>
-              <th>Analysis of Receipts</th>
-              <th>Bank</th>
-              <th>Sales</th>
-              <th>Trade Receivables Control</th>
-              <th>Sundry Amount</th>
-              <th>Fol</th>
-              <th>Sundry Details</th>
-              <th>Action</th>
+            <tr class="table-header-title-row">
+              <th colspan="10" class="journal-title-header" contenteditable="true" title="Click to edit business name or date">Cash Receipts journal of blue skies for January 2025</th>
+              <th class="col-action-th"></th>
+            </tr>
+            <tr class="table-header-cols-row1">
+              <th rowspan="2" class="th-doc">Doc<br>no</th>
+              <th rowspan="2" class="th-day">Day</th>
+              <th rowspan="2" class="th-details">Details</th>
+              <th rowspan="2" class="th-aor">Analysis of<br>receipts</th>
+              <th rowspan="2" class="th-bank">Bank</th>
+              <th rowspan="2" class="th-sales">Sales</th>
+              <th rowspan="2" class="th-trc">Trade<br>receivables<br>control</th>
+              <th colspan="3" class="th-sundry">Sundry account</th>
+              <th rowspan="2" class="col-action-th">Action</th>
+            </tr>
+            <tr class="table-header-cols-row2">
+              <th class="th-sundry-amount">Amount</th>
+              <th class="th-sundry-fol">Fol</th>
+              <th class="th-sundry-details">Details</th>
             </tr>
           </thead>
           <tbody id="tbody-crj"></tbody>
@@ -63,18 +95,25 @@
       <div class="table-container">
         <table id="table-cpj">
           <thead>
-            <tr>
-              <th>Doc No</th>
-              <th>Day</th>
-              <th>Payee</th>
-              <th>Bank</th>
-              <th>Wages</th>
-              <th>Purchases</th>
-              <th>Trade Payables Control</th>
-              <th>Sundry Amount</th>
-              <th>Fol</th>
-              <th>Sundry Details</th>
-              <th>Action</th>
+            <tr class="table-header-title-row">
+              <th colspan="10" class="journal-title-header" contenteditable="true" title="Click to edit business name or date">Cash Payments journal of blue skies for January 2025</th>
+              <th class="col-action-th"></th>
+            </tr>
+            <tr class="table-header-cols-row1">
+              <th rowspan="2" class="th-doc">Doc<br>no</th>
+              <th rowspan="2" class="th-day">Day</th>
+              <th rowspan="2" class="th-details">Payee</th>
+              <th rowspan="2" class="th-bank">Bank</th>
+              <th rowspan="2" class="th-wages">Wages</th>
+              <th rowspan="2" class="th-purchases">Purchases</th>
+              <th rowspan="2" class="th-tpc">Trade<br>payables<br>control</th>
+              <th colspan="3" class="th-sundry">Sundry account</th>
+              <th rowspan="2" class="col-action-th">Action</th>
+            </tr>
+            <tr class="table-header-cols-row2">
+              <th class="th-sundry-amount">Amount</th>
+              <th class="th-sundry-fol">Fol</th>
+              <th class="th-sundry-details">Details</th>
             </tr>
           </thead>
           <tbody id="tbody-cpj"></tbody>
@@ -91,18 +130,25 @@
       <div class="table-container">
         <table id="table-pcj">
           <thead>
-            <tr>
-              <th>Doc No</th>
-              <th>Day</th>
-              <th>Details</th>
-              <th>Petty Cash / Total</th>
-              <th>Wages</th>
-              <th>Postage</th>
-              <th>Stationery</th>
-              <th>Sundry Amount</th>
-              <th>Fol</th>
-              <th>Sundry Details</th>
-              <th>Action</th>
+            <tr class="table-header-title-row">
+              <th colspan="10" class="journal-title-header" contenteditable="true" title="Click to edit business name or date">Petty Cash journal of blue skies for January 2025</th>
+              <th class="col-action-th"></th>
+            </tr>
+            <tr class="table-header-cols-row1">
+              <th rowspan="2" class="th-doc">Doc<br>no</th>
+              <th rowspan="2" class="th-day">Day</th>
+              <th rowspan="2" class="th-details">Details</th>
+              <th rowspan="2" class="th-pct">Petty<br>cash/total</th>
+              <th rowspan="2" class="th-wages">Wages</th>
+              <th rowspan="2" class="th-postage">Postage</th>
+              <th rowspan="2" class="th-stationery">Stationery</th>
+              <th colspan="3" class="th-sundry">Sundry account</th>
+              <th rowspan="2" class="col-action-th">Action</th>
+            </tr>
+            <tr class="table-header-cols-row2">
+              <th class="th-sundry-amount">Amount</th>
+              <th class="th-sundry-fol">Fol</th>
+              <th class="th-sundry-details">Details</th>
             </tr>
           </thead>
           <tbody id="tbody-pcj"></tbody>
