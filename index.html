@@ -37,6 +37,11 @@
         <button id="btn-guided" class="mode-btn active" onclick="switchMode('guided')">Guided Mode</button>
         <button id="btn-free" class="mode-btn" onclick="switchMode('free')">Free Mode</button>
       </div>
+      <div class="control-group">
+        <button id="btn-api-key" class="btn-api-key" onclick="openApiKeyModal()">
+          <span id="api-key-badge">Gemini API Key</span>
+        </button>
+      </div>
     </div>
   </header>
 
@@ -178,6 +183,82 @@
   <div class="action-bar">
     <button class="btn-finish" onclick="onFinish()">Finish</button>
     <button class="btn-download" onclick="onDownload()">Download (.docx)</button>
+  </div>
+
+  <!-- API Key Modal -->
+  <div id="api-key-modal" class="modal-backdrop" style="display:none;">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h2>Gemini API Key Settings</h2>
+        <button class="modal-close" onclick="closeApiKeyModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-info">Enter your Google Gemini API key to enable AI transaction solving and accounting explanations. Your key is stored strictly in your browser's localStorage and only sent directly to Google's official Gemini endpoint.</p>
+        <div class="form-group">
+          <label for="input-api-key">Gemini API Key:</label>
+          <input type="password" id="input-api-key" placeholder="Paste your API key (AIzaSy...)" autocomplete="off" />
+        </div>
+        <p class="modal-subtext">Need an API key? You can generate a free Gemini key at <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener">Google AI Studio</a>.</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-primary" onclick="saveApiKey()">Save Key</button>
+        <button class="btn-danger" onclick="clearApiKey()">Clear Key</button>
+        <button class="btn-secondary" onclick="closeApiKeyModal()">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- AI Solver Modal -->
+  <div id="ai-solver-modal" class="modal-backdrop" style="display:none;">
+    <div class="modal-dialog modal-dialog-large">
+      <div class="modal-header">
+        <h2 id="ai-modal-title">AI Transaction Solver</h2>
+        <button class="modal-close" onclick="closeAiModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="ai-input-section">
+          <label for="ai-tx-prompt"><strong>Transaction Problem Statement:</strong></label>
+          <textarea id="ai-tx-prompt" rows="3" placeholder="Enter transaction description or problem statement here..."></textarea>
+          
+          <div class="ai-samples-bar">
+            <span class="samples-label">Quick samples:</span>
+            <button type="button" class="btn-sample" onclick="loadSamplePrompt(1)">Capital deposit</button>
+            <button type="button" class="btn-sample" onclick="loadSamplePrompt(2)">Inventory cheque</button>
+            <button type="button" class="btn-sample" onclick="loadSamplePrompt(3)">New equipment</button>
+            <button type="button" class="btn-sample" onclick="loadSamplePrompt(4)">Petty cash stamps</button>
+            <button type="button" class="btn-sample" onclick="loadSamplePrompt(5)">Cash sales roll</button>
+          </div>
+
+          <div class="ai-solve-action">
+            <button id="btn-run-ai" class="btn-solve" onclick="executeAiSolve()">Solve with Gemini</button>
+          </div>
+        </div>
+
+        <div id="ai-loading" class="ai-loading" style="display:none;">
+          <p>Analyzing transaction using accounting subsidiary journal rules...</p>
+        </div>
+
+        <div id="ai-error" class="ai-error" style="display:none;"></div>
+
+        <div id="ai-result" class="ai-result" style="display:none;">
+          <h3>AI Solution & Row Breakdown</h3>
+          <div class="solution-preview-table-container">
+            <table class="solution-preview-table" id="solution-preview-table">
+              <!-- Dynamically populated preview of row values -->
+            </table>
+          </div>
+
+          <h3>Why It Was Recorded (Accounting Explanation)</h3>
+          <div class="ai-explanation-box" id="ai-explanation-content">
+            <!-- Step-by-step accounting explanation -->
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="btn-apply-solution" class="btn-primary" style="display:none;" onclick="applyCurrentAiSolution()">Apply to Table Row</button>
+        <button class="btn-secondary" onclick="closeAiModal()">Close</button>
+      </div>
+    </div>
   </div>
 
   <script src="app.js"></script>

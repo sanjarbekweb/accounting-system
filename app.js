@@ -17,6 +17,12 @@ const journals = {
   pcj: []
 };
 
+let activeAiContext = {
+  journalKey: 'crj',
+  rowIndex: 0,
+  solution: null
+};
+
 // ============================================================
 // SCHEMA DEFINITIONS
 // ============================================================
@@ -76,6 +82,7 @@ const numericKeys = {
 function blankRow(journalKey) {
   const row = {};
   schemas[journalKey].forEach(col => { row[col.key] = ''; });
+  row.aiExplanation = '';
   return row;
 }
 
@@ -88,6 +95,8 @@ function init() {
   if (savedCurrency) currentCurrency = savedCurrency;
   const select = document.getElementById('currency-select');
   if (select) select.value = currentCurrency;
+
+  updateApiKeyBadge();
 
   journals.crj.push(blankRow('crj'));
   journals.cpj.push(blankRow('cpj'));
@@ -163,6 +172,15 @@ function renderJournal(journalKey) {
 
     const actionTd = document.createElement('td');
     actionTd.classList.add('col-action');
+
+    const aiBtn = document.createElement('button');
+    aiBtn.className = 'btn-ai';
+    if (row.aiExplanation) aiBtn.classList.add('has-ai-exp');
+    aiBtn.textContent = 'AI';
+    aiBtn.type = 'button';
+    aiBtn.title = row.aiExplanation ? 'AI Solved (Click to view explanation or re-solve)' : 'Solve with AI';
+    aiBtn.addEventListener('click', () => openAiModal(journalKey, rowIndex));
+    actionTd.appendChild(aiBtn);
 
     const removeBtn = document.createElement('button');
     removeBtn.className = 'btn-remove';
@@ -749,6 +767,405 @@ function setCurrency(newCurrency) {
   const resultsPanel = document.getElementById('results-panel');
   if (resultsPanel && resultsPanel.style.display !== 'none') {
     onFinish();
+  }
+}
+
+// ============================================================
+// GEMINI API KEY MANAGEMENT
+// ============================================================
+
+function getApiKey() {
+  return (localStorage.getItem('gemini_api_key') || '').trim();
+}
+
+function updateApiKeyBadge() {
+  const badge = document.getElementById('api-key-badge');
+  const btn = document.getElementById('btn-api-key');
+  if (!badge) return;
+  const key = getApiKey();
+  if (key) {
+    badge.textContent = 'Gemini API: Ready';
+    if (btn) btn.classList.add('has-key');
+  } else {
+    badge.textContent = 'Gemini API Key';
+    if (btn) btn.classList.remove('has-key');
+  }
+}
+
+function openApiKeyModal() {
+  const input = document.getElementById('input-api-key');
+  if (input) input.value = getApiKey();
+  const modal = document.getElementById('api-key-modal');
+  if (modal) modal.style.display = 'flex';
+}
+
+function closeApiKeyModal() {
+  const modal = document.getElementById('api-key-modal');
+  if (modal) modal.style.display = 'none';
+}
+
+function saveApiKey() {
+  const input = document.getElementById('input-api-key');
+  const val = (input ? input.value : '').trim();
+  if (!val) {
+    alert('Please enter a valid Gemini API key or click Cancel.');
+    return;
+  }
+  localStorage.setItem('gemini_api_key', val);
+  updateApiKeyBadge();
+  closeApiKeyModal();
+}
+
+function clearApiKey() {
+  localStorage.removeItem('gemini_api_key');
+  const input = document.getElementById('input-api-key');
+  if (input) input.value = '';
+  updateApiKeyBadge();
+  closeApiKeyModal();
+}
+
+// ============================================================
+// AI SOLVER MODAL & CONTROLS
+// ============================================================
+
+function openAiModal(journalKey, rowIndex) {
+  activeAiContext = { journalKey, rowIndex, solution: null };
+
+  const journalNames = {
+    crj: 'Cash Receipts Journal (CRJ)',
+    cpj: 'Cash Payments Journal (CPJ)',
+    pcj: 'Petty Cash Journal (PCJ)'
+  };
+
+  const titleEl = document.getElementById('ai-modal-title');
+  if (titleEl) {
+    titleEl.textContent = `AI Transaction Solver — ${journalNames[journalKey]} (Row ${rowIndex + 1})`;
+  }
+
+  const row = journals[journalKey][rowIndex];
+  const txPrompt = document.getElementById('ai-tx-prompt');
+  const loadingEl = document.getElementById('ai-loading');
+  const errorEl = document.getElementById('ai-error');
+  const resultEl = document.getElementById('ai-result');
+  const applyBtn = document.getElementById('btn-apply-solution');
+
+  if (loadingEl) loadingEl.style.display = 'none';
+  if (errorEl) errorEl.style.display = 'none';
+
+  if (row && row.aiExplanation) {
+    if (resultEl) resultEl.style.display = 'block';
+    renderSolutionPreview(journalKey, row);
+    const expBox = document.getElementById('ai-explanation-content');
+    if (expBox) expBox.textContent = row.aiExplanation;
+    if (applyBtn) applyBtn.style.display = 'none';
+  } else {
+    if (resultEl) resultEl.style.display = 'none';
+    if (applyBtn) applyBtn.style.display = 'none';
+  }
+
+  // Pre-load a default sample prompt if prompt is empty
+  if (txPrompt && !txPrompt.value.trim()) {
+    loadSamplePrompt(1);
+  }
+
+  const modal = document.getElementById('ai-solver-modal');
+  if (modal) modal.style.display = 'flex';
+}
+
+function closeAiModal() {
+  const modal = document.getElementById('ai-solver-modal');
+  if (modal) modal.style.display = 'none';
+}
+
+function loadSamplePrompt(id) {
+  const jk = activeAiContext.journalKey || 'crj';
+  const c = currentCurrency;
+  const samples = {
+    crj: {
+      1: `Owner deposited ${c} 50,000 cash directly into the business bank account as initial capital contribution on day 1 (Receipt 001).`,
+      2: `Cash sales of merchandise according to the cash register roll on day 8 amounted to ${c} 3,450.`,
+      3: `Received ${c} 1,200 cheque from debtor C Hopkins on day 14 in part settlement of his account (Receipt 002).`,
+      4: `Received ${c} 800 cash from tenant for monthly store rent on day 20 (Receipt 003).`,
+      5: `Cash sales of merchandise per cash register tape on day 28 totaled ${c} 4,600.`
+    },
+    cpj: {
+      1: `Paid weekly wages in cash, ${c} 1,500 on day 5 (Cheque 101).`,
+      2: `Purchased trading inventory from Waltons Wholesalers, paying ${c} 4,200 by cheque 102 on day 9.`,
+      3: `Bought new office computer and desk for ${c} 2,800 from Office Mart, paid by cheque 103 on day 15.`,
+      4: `Paid creditor AA Suppliers ${c} 1,650 by cheque 104 in settlement of account on day 22.`,
+      5: `Owner withdrew ${c} 750 cash for personal living expenses on day 27 (Cheque 105).`
+    },
+    pcj: {
+      1: `Paid ${c} 45 cash from petty cash for postage stamps on day 3 (Petty Cash Voucher 201).`,
+      2: `Bought office stationery including pens and printing paper for ${c} 68 cash on day 7 (Voucher 202).`,
+      3: `Paid ${c} 35 cash for tea, milk, and sugar for office staff refreshments on day 12 (Voucher 203).`,
+      4: `Paid ${c} 50 cash to casual cleaner for office deep cleaning on day 18 (Voucher 204).`,
+      5: `Paid ${c} 25 cash for urgent delivery courier service on day 24 (Voucher 205).`
+    }
+  };
+
+  const txPrompt = document.getElementById('ai-tx-prompt');
+  if (txPrompt && samples[jk] && samples[jk][id]) {
+    txPrompt.value = samples[jk][id];
+  }
+}
+
+function renderSolutionPreview(journalKey, fields) {
+  const table = document.getElementById('solution-preview-table');
+  if (!table) return;
+  table.innerHTML = '';
+
+  const thead = document.createElement('thead');
+  const trHead = document.createElement('tr');
+  const tbody = document.createElement('tbody');
+  const trData = document.createElement('tr');
+
+  schemas[journalKey].forEach(col => {
+    const th = document.createElement('th');
+    th.textContent = col.label;
+    trHead.appendChild(th);
+
+    const td = document.createElement('td');
+    let val = fields[col.key] !== undefined ? fields[col.key] : '';
+    if (numericKeys[journalKey].includes(col.key)) {
+      td.classList.add('num-cell');
+      if (val !== '' && !isNaN(parseFloat(val))) {
+        val = `${currentCurrency} ${round2(parseFloat(val)).toFixed(2)}`;
+      }
+    }
+    td.textContent = val !== '' ? val : '—';
+    trData.appendChild(td);
+  });
+
+  thead.appendChild(trHead);
+  tbody.appendChild(trData);
+  table.appendChild(thead);
+  table.appendChild(tbody);
+}
+
+function applyCurrentAiSolution() {
+  const { journalKey, rowIndex, solution } = activeAiContext;
+  if (!solution || !solution.fields) return;
+
+  const row = journals[journalKey][rowIndex];
+  if (!row) return;
+
+  schemas[journalKey].forEach(col => {
+    if (solution.fields[col.key] !== undefined && solution.fields[col.key] !== null) {
+      row[col.key] = String(solution.fields[col.key]);
+    }
+  });
+
+  row.aiExplanation = solution.explanation || '';
+
+  renderJournal(journalKey);
+  closeAiModal();
+}
+
+// ============================================================
+// GEMINI PROMPT GENERATOR & API CLIENT
+// ============================================================
+
+function buildGeminiAccountingPrompt(txText, journalKey, currency) {
+  const journalNames = {
+    crj: 'Cash Receipts Journal (CRJ)',
+    cpj: 'Cash Payments Journal (CPJ)',
+    pcj: 'Petty Cash Journal (PCJ)'
+  };
+
+  const schemaInfo = schemas[journalKey].map(col => {
+    let extra = '';
+    if (col.guidedOptions) extra = ` (Permitted account names: ${col.guidedOptions.join(', ')})`;
+    return `- "${col.key}": ${col.label} (${col.type})${extra}`;
+  }).join('\n');
+
+  let specificRules = '';
+  if (journalKey === 'crj') {
+    specificRules = `CRJ RULES:
+- "docNo": Document number (e.g. "001", "CRT 1", "Rec 1").
+- "day": Integer 1-31.
+- "details": Name of account or payer. Write "Sales" for cash merchandise sales. Write debtor's name for debtor payment. Write "Capital" or owner name for capital contribution. Write income name (e.g. "Rent income") for other receipts.
+- "analysisOfReceipts": Cash received into the cash till before banking.
+- "bank": Total amount banked. Usually equals analysisOfReceipts.
+- "sales": Selling price if merchandise was sold.
+- "tradeReceivablesControl": Money received from a trade debtor on account.
+- "sundryAmount": Any receipt that is NEITHER Sales NOR Trade Receivables (e.g. Capital, Rent income, Interest income). If none, set to 0.
+- "fol": Folio reference (e.g. "B1", "N1", "GL").
+- "sundryDetails": The exact General Ledger account name credited for the sundry amount (e.g. "Capital", "Rent income"). Leave empty if sundryAmount is 0.
+- BALANCING FORMULA: analysisOfReceipts MUST EQUAL (sales + tradeReceivablesControl + sundryAmount).`;
+  } else if (journalKey === 'cpj') {
+    specificRules = `CPJ RULES:
+- "docNo": Cheque number or payment voucher (e.g. "101", "Chq 101").
+- "day": Integer 1-31.
+- "payee": Name of person or vendor paid (e.g. "Waltons", "Cash", "Office Mart", "AA Suppliers").
+- "bank": Total amount paid out of business bank account.
+- "wages": Amount paid for staff salaries or wages.
+- "purchases": Amount paid for trading stock / inventory bought for resale.
+- "tradePayablesControl": Amount paid to a trade creditor / supplier on account.
+- "sundryAmount": Any payment not belonging to Wages, Purchases, or Trade Payables (e.g. Equipment, Vehicle, Furniture, Drawings, Rent expense, Stationery, Repairs). If none, set to 0.
+- "fol": Folio reference (e.g. "B2", "N2").
+- "sundryDetails": The exact General Ledger account name debited for sundry amount (e.g. "Equipment", "Drawings", "Rent expense"). Leave empty if sundryAmount is 0.
+- BALANCING FORMULA: bank MUST EQUAL (wages + purchases + tradePayablesControl + sundryAmount).`;
+  } else if (journalKey === 'pcj') {
+    specificRules = `PCJ RULES:
+- "docNo": Petty cash voucher number (e.g. "201", "PCV 1").
+- "day": Integer 1-31.
+- "details": Specific description of expense item (e.g. "Postage stamps", "Stationery", "Refreshments", "Cleaning").
+- "pettyCashTotal": Total cash paid out from petty cash box.
+- "wages": Casual wages paid from petty cash.
+- "postage": Stamps, postage, envelopes.
+- "stationery": Small stationery supplies.
+- "sundryAmount": Any expense not covered by Wages, Postage, or Stationery. If none, set to 0.
+- "fol": Folio reference.
+- "sundryDetails": The account debited for sundry amount (e.g. "Refreshments", "Cleaning", "Donations", "Petrol"). Leave empty if sundryAmount is 0.
+- BALANCING FORMULA: pettyCashTotal MUST EQUAL (wages + postage + stationery + sundryAmount).`;
+  }
+
+  return `You are a certified professional accountant and accounting educator.
+Solve the following transaction problem strictly for the ${journalNames[journalKey]}.
+Currency symbol: ${currency}
+
+TRANSACTION STATEMENT:
+"${txText}"
+
+COLUMN KEYS TO POPULATE:
+${schemaInfo}
+
+${specificRules}
+
+CRITICAL INSTRUCTIONS:
+1. All monetary numbers must be formatted as numeric values or numeric strings (e.g. 5000 or 5000.00). Unused columns must be 0 or empty string "".
+2. Day must be an integer (1-31).
+3. The balancing formula MUST balance exactly.
+4. "explanation" must be a thorough, step-by-step accounting explanation explaining:
+   - Why this belongs in ${journalNames[journalKey]}.
+   - Source document identified.
+   - General Ledger double entry (Debit and Credit accounts).
+   - How the column breakdown balances: Total = ...
+   - Why specific accounts were chosen.
+
+Return ONLY a valid JSON object matching this schema with NO markdown wrapping:
+{
+  "fields": {
+    ${schemas[journalKey].map(c => `"${c.key}": ...`).join(',\n    ')}
+  },
+  "explanation": "Step-by-step accounting explanation..."
+}`;
+}
+
+async function callGeminiApi(prompt, apiKey) {
+  const models = ['gemini-2.5-flash', 'gemini-1.5-flash'];
+  let lastError = null;
+
+  for (const model of models) {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [{ text: prompt }]
+            }
+          ],
+          generationConfig: {
+            responseMimeType: 'application/json',
+            temperature: 0.1
+          }
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        const errMsg = errorData.error && errorData.error.message ? errorData.error.message : `HTTP ${response.status} ${response.statusText}`;
+        if (response.status === 400 && errMsg.includes('API key')) {
+          throw new Error('Invalid Gemini API Key. Please verify your key in the settings.');
+        }
+        if (response.status === 404) {
+          lastError = new Error(errMsg);
+          continue;
+        }
+        throw new Error(`Gemini API error: ${errMsg}`);
+      }
+
+      const data = await response.json();
+      const text = data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts[0] ? data.candidates[0].content.parts[0].text : null;
+      if (!text) {
+        throw new Error('Gemini API returned an empty response.');
+      }
+
+      const cleaned = text.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```\s*$/i, '').trim();
+      const parsed = JSON.parse(cleaned);
+      if (!parsed.fields) {
+        throw new Error('Response did not contain valid journal fields.');
+      }
+      return parsed;
+    } catch (err) {
+      lastError = err;
+      if (err.message && err.message.includes('Invalid Gemini API Key')) {
+        throw err;
+      }
+    }
+  }
+
+  throw lastError || new Error('Failed to reach Gemini API. Please check your internet connection.');
+}
+
+async function executeAiSolve() {
+  const txPrompt = document.getElementById('ai-tx-prompt');
+  const txText = txPrompt ? txPrompt.value.trim() : '';
+  if (!txText) {
+    alert('Please enter a transaction statement or click one of the quick samples.');
+    if (txPrompt) txPrompt.focus();
+    return;
+  }
+
+  const apiKey = getApiKey();
+  if (!apiKey) {
+    alert('A Gemini API key is required to solve transactions with AI. Please configure your API key.');
+    openApiKeyModal();
+    return;
+  }
+
+  const loadingEl = document.getElementById('ai-loading');
+  const errorEl = document.getElementById('ai-error');
+  const resultEl = document.getElementById('ai-result');
+  const applyBtn = document.getElementById('btn-apply-solution');
+  const runBtn = document.getElementById('btn-run-ai');
+
+  if (loadingEl) loadingEl.style.display = 'block';
+  if (errorEl) errorEl.style.display = 'none';
+  if (resultEl) resultEl.style.display = 'none';
+  if (applyBtn) applyBtn.style.display = 'none';
+  if (runBtn) runBtn.disabled = true;
+
+  try {
+    const prompt = buildGeminiAccountingPrompt(txText, activeAiContext.journalKey, currentCurrency);
+    const solution = await callGeminiApi(prompt, apiKey);
+
+    activeAiContext.solution = solution;
+
+    renderSolutionPreview(activeAiContext.journalKey, solution.fields);
+
+    const expContent = document.getElementById('ai-explanation-content');
+    if (expContent) {
+      expContent.textContent = solution.explanation || 'No detailed explanation provided.';
+    }
+
+    if (resultEl) resultEl.style.display = 'block';
+    if (applyBtn) applyBtn.style.display = 'inline-block';
+    resultEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  } catch (err) {
+    if (errorEl) {
+      errorEl.textContent = err.message || 'An error occurred while solving with Gemini.';
+      errorEl.style.display = 'block';
+    }
+  } finally {
+    if (loadingEl) loadingEl.style.display = 'none';
+    if (runBtn) runBtn.disabled = false;
   }
 }
 
