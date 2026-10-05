@@ -230,9 +230,28 @@ function round2(n) {
   return Math.round(n * 100) / 100;
 }
 
+// ============================================================
+// ADD ROW
+// ============================================================
+
+function addRow(journalKey) {
+  journals[journalKey].push(blankRow(journalKey));
+  renderJournal(journalKey);
+}
+
+// ============================================================
+// REMOVE ROW
+// ============================================================
+
+function removeRow(journalKey, index) {
+  journals[journalKey].splice(index, 1);
+  if (journals[journalKey].length === 0) {
+    journals[journalKey].push(blankRow(journalKey));
+  }
+  renderJournal(journalKey);
+}
+
 // Placeholders — filled in subsequent commits
-function addRow(journalKey) {}
-function removeRow(journalKey, index) {}
 function onFinish() {}
 function onDownload() {}
 
