@@ -251,8 +251,151 @@ function removeRow(journalKey, index) {
   renderJournal(journalKey);
 }
 
-// Placeholders — filled in subsequent commits
-function onFinish() {}
+// ============================================================
+// COMPUTE TOTALS
+// ============================================================
+
+function computeTotals(journalKey) {
+  const totals = {};
+  numericKeys[journalKey].forEach(k => { totals[k] = 0; });
+
+  journals[journalKey].forEach(row => {
+    numericKeys[journalKey].forEach(k => {
+      const v = parseFloat(row[k]);
+      if (!isNaN(v)) totals[k] += v;
+    });
+  });
+
+  return totals;
+}
+
+// ============================================================
+// VALIDATE JOURNAL
+// ============================================================
+
+function validateJournal(journalKey) {
+  const errors = [];
+  const journalLabel = { crj: 'CRJ', cpj: 'CPJ', pcj: 'PCJ' }[journalKey];
+
+  journals[journalKey].forEach((row, i) => {
+    const rowNum = i + 1;
+
+    if (row.day !== '' && row.day !== undefined) {
+      const day = parseInt(row.day, 10);
+      if (isNaN(day) || day < 1 || day > 31) {
+        errors.push(`${journalLabel} Row ${rowNum}: Day must be between 1 and 31.`);
+      }
+    }
+
+    const sundryAmt = parseFloat(row.sundryAmount);
+    if (!isNaN(sundryAmt) && sundryAmt > 0 && (!row.sundryDetails || row.sundryDetails.trim() === '')) {
+      errors.push(`${journalLabel} Row ${rowNum}: Sundry Amount entered but Sundry Details is missing.`);
+    }
+
+    if (journalKey === 'crj') {
+      const aor = parseFloat(row.analysisOfReceipts);
+      const s   = parseFloat(row.sales);
+      const trc = parseFloat(row.tradeReceivablesControl);
+      const sa  = parseFloat(row.sundryAmount);
+      if (!isNaN(aor) && !isNaN(s) && !isNaN(trc) && !isNaN(sa)) {
+        const expected = round2(s + trc + sa);
+        if (Math.abs(round2(aor) - expected) > 0.001) {
+          errors.push(`CRJ Row ${rowNum}: Analysis of Receipts (${aor}) does not match column breakdown (Sales + Trade Receivables Control + Sundry Amount = ${expected}).`);
+        }
+      }
+    }
+
+    if (journalKey === 'cpj') {
+      const bank = parseFloat(row.bank);
+      const w    = parseFloat(row.wages);
+      const p    = parseFloat(row.purchases);
+      const tpc  = parseFloat(row.tradePayablesControl);
+      const sa   = parseFloat(row.sundryAmount);
+      if (!isNaN(bank) && !isNaN(w) && !isNaN(p) && !isNaN(tpc) && !isNaN(sa)) {
+        const expected = round2(w + p + tpc + sa);
+        if (Math.abs(round2(bank) - expected) > 0.001) {
+          errors.push(`CPJ Row ${rowNum}: Bank (${bank}) does not match column breakdown (Wages + Purchases + Trade Payables Control + Sundry Amount = ${expected}).`);
+        }
+      }
+    }
+
+    if (journalKey === 'pcj') {
+      const pct = parseFloat(row.pettyCashTotal);
+      const w   = parseFloat(row.wages);
+      const po  = parseFloat(row.postage);
+      const st  = parseFloat(row.stationery);
+      const sa  = parseFloat(row.sundryAmount);
+      if (!isNaN(pct) && !isNaN(w) && !isNaN(po) && !isNaN(st) && !isNaN(sa)) {
+        const expected = round2(w + po + st + sa);
+        if (Math.abs(round2(pct) - expected) > 0.001) {
+          errors.push(`PCJ Row ${rowNum}: Petty Cash / Total (${pct}) does not match column breakdown (Wages + Postage + Stationery + Sundry Amount = ${expected}).`);
+        }
+      }
+    }
+  });
+
+  return errors;
+}
+
+// ============================================================
+// ON FINISH
+// ============================================================
+
+function onFinish() {
+  syncStateFromDOM();
+
+  const allErrors = [
+    ...validateJournal('crj'),
+    ...validateJournal('cpj'),
+    ...validateJournal('pcj')
+  ];
+
+  const crjTotals = computeTotals('crj');
+  const cpjTotals = computeTotals('cpj');
+  const pcjTotals = computeTotals('pcj');
+
+  const panel = document.getElementById('results-panel');
+  panel.style.display = 'block';
+
+  let html = '<h3>Results</h3>';
+
+  html += '<div class="totals-panel">';
+  html += '<h4>Totals</h4>';
+
+  const journalMeta = [
+    { key: 'crj', label: 'Cash Receipts Journal (CRJ)', totals: crjTotals },
+    { key: 'cpj', label: 'Cash Payments Journal (CPJ)', totals: cpjTotals },
+    { key: 'pcj', label: 'Petty Cash Journal (PCJ)',    totals: pcjTotals }
+  ];
+
+  journalMeta.forEach(({ key, label, totals }) => {
+    html += `<p style="font-weight:600;margin:0.5rem 0 0.25rem;">${label}</p>`;
+    html += '<table class="totals-table"><thead><tr><th>Column</th><th>Total</th></tr></thead><tbody>';
+    numericKeys[key].forEach(colKey => {
+      const colLabel = schemas[key].find(c => c.key === colKey).label;
+      html += `<tr><td>${colLabel}</td><td>${round2(totals[colKey]).toFixed(2)}</td></tr>`;
+    });
+    html += '</tbody></table>';
+  });
+
+  html += '</div>';
+
+  if (allErrors.length > 0) {
+    html += '<div class="errors-panel">';
+    html += '<h4>Errors</h4>';
+    html += '<ul>';
+    allErrors.forEach(err => {
+      html += `<li>${escapeHtml(err)}</li>`;
+    });
+    html += '</ul></div>';
+  } else {
+    html += '<div class="no-errors-panel"><p>No errors found — your entries look correct.</p></div>';
+  }
+
+  panel.innerHTML = html;
+  panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
 function onDownload() {}
 
 // ============================================================
