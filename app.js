@@ -396,7 +396,107 @@ function onFinish() {
   panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
-function onDownload() {}
+// ============================================================
+// ON DOWNLOAD (docx)
+// ============================================================
+
+function onDownload() {
+  syncStateFromDOM();
+
+  if (typeof docx === 'undefined') {
+    alert('The docx library has not loaded yet. Please check your internet connection and try again.');
+    return;
+  }
+
+  const {
+    Document, Packer, Paragraph, Table, TableRow, TableCell,
+    TextRun, HeadingLevel, WidthType
+  } = docx;
+
+  const journalDefs = [
+    { key: 'crj', label: 'Cash Receipts Journal (CRJ)' },
+    { key: 'cpj', label: 'Cash Payments Journal (CPJ)' },
+    { key: 'pcj', label: 'Petty Cash Journal (PCJ)'    }
+  ];
+
+  function makeCell(text, bold) {
+    return new TableCell({
+      children: [
+        new Paragraph({
+          children: [new TextRun({ text: String(text || ''), bold: !!bold, size: 18 })]
+        })
+      ],
+      margins: { top: 60, bottom: 60, left: 80, right: 80 }
+    });
+  }
+
+  const docSections = [];
+
+  journalDefs.forEach(({ key, label }) => {
+    const schema = schemas[key];
+    const rows   = journals[key];
+    const totals = computeTotals(key);
+
+    const headerCells = schema.map(col => makeCell(col.label, true));
+    const headerRow = new TableRow({ children: headerCells, tableHeader: true });
+
+    const dataRows = rows.map(rowData => {
+      const cells = schema.map(col => makeCell(rowData[col.key] || ''));
+      return new TableRow({ children: cells });
+    });
+
+    const totalsCells = schema.map((col, idx) => {
+      if (idx === 0) return makeCell('Totals', true);
+      if (numericKeys[key].includes(col.key)) {
+        return makeCell(round2(totals[col.key]).toFixed(2), true);
+      }
+      return makeCell('');
+    });
+    const totalsRow = new TableRow({ children: totalsCells });
+
+    const docTable = new Table({
+      rows: [headerRow, ...dataRows, totalsRow],
+      width: { size: 100, type: WidthType.PERCENTAGE }
+    });
+
+    docSections.push(
+      new Paragraph({
+        text: label,
+        heading: HeadingLevel.HEADING_2,
+        spacing: { before: 300, after: 150 }
+      }),
+      docTable,
+      new Paragraph({ text: '', spacing: { after: 200 } })
+    );
+  });
+
+  const doc = new Document({
+    sections: [{
+      children: [
+        new Paragraph({
+          text: 'Accounting Journals',
+          heading: HeadingLevel.HEADING_1,
+          spacing: { after: 300 }
+        }),
+        ...docSections
+      ]
+    }]
+  });
+
+  Packer.toBlob(doc).then(blob => {
+    const url = URL.createObjectURL(blob);
+    const a   = document.createElement('a');
+    a.href     = url;
+    a.download = 'accounting_journals.docx';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }).catch(err => {
+    console.error('Error generating .docx:', err);
+    alert('Failed to generate the Word document. See the browser console for details.');
+  });
+}
 
 // ============================================================
 // START
