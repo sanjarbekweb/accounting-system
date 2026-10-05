@@ -21,9 +21,22 @@
       <h1>Accounting Practice System</h1>
       <p class="subtitle">Subsidiary Journals: Cash Receipts (CRJ), Cash Payments (CPJ), Petty Cash (PCJ)</p>
     </div>
-    <div class="mode-toggle">
-      <button id="btn-guided" class="mode-btn active" onclick="switchMode('guided')">Guided Mode (Dropdown Options)</button>
-      <button id="btn-free" class="mode-btn" onclick="switchMode('free')">Free Mode (Manual Inputs)</button>
+    <div class="header-controls">
+      <div class="control-group">
+        <label for="currency-select" class="control-label">Currency:</label>
+        <select id="currency-select" class="currency-select" onchange="setCurrency(this.value)">
+          <option value="R">R (Rand)</option>
+          <option value="$">$ (Dollar)</option>
+          <option value="€">€ (Euro)</option>
+          <option value="Fr">Fr (Franc)</option>
+          <option value="¥">¥ (Yen)</option>
+          <option value="£">£ (Pound)</option>
+        </select>
+      </div>
+      <div class="mode-toggle">
+        <button id="btn-guided" class="mode-btn active" onclick="switchMode('guided')">Guided Mode</button>
+        <button id="btn-free" class="mode-btn" onclick="switchMode('free')">Free Mode</button>
+      </div>
     </div>
   </header>
 

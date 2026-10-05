@@ -9,6 +9,7 @@
 // ============================================================
 
 let mode = 'guided'; // 'guided' | 'free'
+let currentCurrency = localStorage.getItem('accounting_currency') || 'R';
 
 const journals = {
   crj: [],
@@ -83,6 +84,11 @@ function blankRow(journalKey) {
 // ============================================================
 
 function init() {
+  const savedCurrency = localStorage.getItem('accounting_currency');
+  if (savedCurrency) currentCurrency = savedCurrency;
+  const select = document.getElementById('currency-select');
+  if (select) select.value = currentCurrency;
+
   journals.crj.push(blankRow('crj'));
   journals.cpj.push(blankRow('cpj'));
   journals.pcj.push(blankRow('pcj'));
@@ -157,9 +163,11 @@ function renderJournal(journalKey) {
 
     const actionTd = document.createElement('td');
     actionTd.classList.add('col-action');
+
     const removeBtn = document.createElement('button');
     removeBtn.className = 'btn-remove';
     removeBtn.textContent = 'x';
+    removeBtn.type = 'button';
     removeBtn.title = 'Remove row';
     removeBtn.addEventListener('click', () => removeRow(journalKey, rowIndex));
     actionTd.appendChild(removeBtn);
@@ -448,7 +456,8 @@ function renderTotalsFoot(journalKey, totals) {
       td.textContent = 'Totals';
       td.classList.add('totals-label');
     } else if (numericKeys[journalKey].includes(col.key)) {
-      td.textContent = round2(totals[col.key]).toFixed(2);
+      td.textContent = `${currentCurrency} ${round2(totals[col.key]).toFixed(2)}`;
+      td.classList.add('totals-number');
     } else {
       td.textContent = '';
     }
@@ -525,7 +534,7 @@ function onFinish() {
     html += '<table class="totals-table"><thead><tr><th>Column</th><th>Total</th></tr></thead><tbody>';
     numericKeys[key].forEach(colKey => {
       const colLabel = schemas[key].find(c => c.key === colKey).label;
-      html += `<tr><td>${colLabel}</td><td>${round2(totals[colKey]).toFixed(2)}</td></tr>`;
+      html += `<tr><td>${colLabel}</td><td>${currentCurrency} ${round2(totals[colKey]).toFixed(2)}</td></tr>`;
     });
     html += '</tbody></table>';
   });
@@ -657,9 +666,15 @@ function onDownload() {
     const dataRows = rows.map(rowData => {
       const cells = schema.map(col => {
         let align = 'left';
-        if (numericKeys[key].includes(col.key)) align = 'right';
+        let val = rowData[col.key] || '';
+        if (numericKeys[key].includes(col.key)) {
+          align = 'right';
+          if (val !== '' && !isNaN(parseFloat(val))) {
+            val = `${currentCurrency} ${round2(parseFloat(val)).toFixed(2)}`;
+          }
+        }
         if (col.key === 'day' || col.fol) align = 'center';
-        return makeWordDataCell(rowData[col.key] || '', align, false);
+        return makeWordDataCell(val, align, false);
       });
       return new TableRow({ children: cells });
     });
@@ -668,7 +683,7 @@ function onDownload() {
     const totalsCells = schema.map((col, idx) => {
       if (idx === 0) return makeWordDataCell('Totals', 'center', true);
       if (numericKeys[key].includes(col.key)) {
-        return makeWordDataCell(round2(totals[col.key]).toFixed(2), 'right', true);
+        return makeWordDataCell(`${currentCurrency} ${round2(totals[col.key]).toFixed(2)}`, 'right', true);
       }
       return makeWordDataCell('', 'left', false);
     });
@@ -712,6 +727,29 @@ function onDownload() {
     console.error('Error generating .docx:', err);
     alert('Failed to generate the Word document. See the browser console for details.');
   });
+}
+
+// ============================================================
+// CURRENCY MANAGEMENT
+// ============================================================
+
+function setCurrency(newCurrency) {
+  currentCurrency = newCurrency;
+  localStorage.setItem('accounting_currency', newCurrency);
+
+  // Update in-table totals footers if currently visible
+  ['crj', 'cpj', 'pcj'].forEach(jk => {
+    const tfoot = document.getElementById('tfoot-' + jk);
+    if (tfoot && tfoot.style.display !== 'none') {
+      renderTotalsFoot(jk, computeTotals(jk));
+    }
+  });
+
+  // Refresh results panel if active
+  const resultsPanel = document.getElementById('results-panel');
+  if (resultsPanel && resultsPanel.style.display !== 'none') {
+    onFinish();
+  }
 }
 
 // ============================================================
