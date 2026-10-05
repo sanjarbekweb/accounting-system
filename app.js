@@ -38,7 +38,8 @@ const schemas = {
   cpj: [
     { key: 'docNo',                 label: 'Doc No',                   type: 'text'   },
     { key: 'day',                   label: 'Day',                      type: 'number' },
-    { key: 'payee',                 label: 'Payee',                    type: 'text'   },
+    { key: 'payee',                 label: 'Payee',                    type: 'text',
+      guidedOptions: ['Cash', 'Waltons', 'P Pink', 'AA Traders', 'Uzbek printers', 'Fieri Design', 'CNA', 'Markell Ltd', 'Mr Krisel', 'Dulux', 'Dassin Motors', 'PostNet', 'Bela Belay Ltd', 'Holman Traders', 'Coca Cola', 'Standard Bank', 'Engen'] },
     { key: 'bank',                  label: 'Bank',                     type: 'number' },
     { key: 'wages',                 label: 'Wages',                    type: 'number' },
     { key: 'purchases',             label: 'Purchases',                type: 'number' },
@@ -46,13 +47,13 @@ const schemas = {
     { key: 'sundryAmount',          label: 'Sundry Amount',            type: 'number' },
     { key: 'fol',                   label: 'Fol',                      type: 'text', fol: true },
     { key: 'sundryDetails',         label: 'Sundry Details',           type: 'text',
-      guidedOptions: ['Furniture', 'Equipment', 'Vehicle', 'Drawings', 'Wages', 'Rent expense', 'Interest expense', 'Stationery', 'Trade payables control'] }
+      guidedOptions: ['Furniture', 'Equipment', 'Vehicle', 'Drawings', 'Wages', 'Rent expense', 'Interest expense', 'Stationery', 'Repairs', 'Trading stock', 'Trade payables control'] }
   ],
   pcj: [
     { key: 'docNo',         label: 'Doc No',            type: 'text'   },
     { key: 'day',           label: 'Day',               type: 'number' },
     { key: 'details',       label: 'Details',           type: 'text',
-      guidedOptions: ['Refreshments', 'Drawings', 'Cleaning', 'Donations', 'Petrol', 'Sundry expenses'] },
+      guidedOptions: ['Stamps', 'Cleaning', 'Envelopes', 'Milk and coffee', 'Wages', 'Postage', 'Stationery', 'Refreshments', 'Drawings', 'Donations', 'Petrol', 'Sundry expenses'] },
     { key: 'pettyCashTotal', label: 'Petty Cash / Total', type: 'number' },
     { key: 'wages',         label: 'Wages',             type: 'number' },
     { key: 'postage',       label: 'Postage',           type: 'number' },
@@ -60,7 +61,7 @@ const schemas = {
     { key: 'sundryAmount',  label: 'Sundry Amount',     type: 'number' },
     { key: 'fol',           label: 'Fol',               type: 'text', fol: true },
     { key: 'sundryDetails', label: 'Sundry Details',    type: 'text',
-      guidedOptions: ['Refreshments', 'Drawings', 'Cleaning', 'Donations', 'Petrol', 'Sundry expenses'] }
+      guidedOptions: ['Refreshments', 'Drawings', 'Cleaning', 'Donations', 'Petrol', 'Sundry expenses', 'Repairs'] }
   ]
 };
 
@@ -273,68 +274,162 @@ function computeTotals(journalKey) {
 // VALIDATE JOURNAL
 // ============================================================
 
+function isRowEmpty(row, journalKey) {
+  return schemas[journalKey].every(col => !row[col.key] || String(row[col.key]).trim() === '');
+}
+
 function validateJournal(journalKey) {
   const errors = [];
+  const rowErrors = new Set();
+  const rowBalanced = new Set();
   const journalLabel = { crj: 'CRJ', cpj: 'CPJ', pcj: 'PCJ' }[journalKey];
 
   journals[journalKey].forEach((row, i) => {
     const rowNum = i + 1;
+    if (isRowEmpty(row, journalKey)) return;
 
+    let hasError = false;
+
+    // Day check
     if (row.day !== '' && row.day !== undefined) {
       const day = parseInt(row.day, 10);
       if (isNaN(day) || day < 1 || day > 31) {
         errors.push(`${journalLabel} Row ${rowNum}: Day must be between 1 and 31.`);
+        hasError = true;
       }
     }
 
-    const sundryAmt = parseFloat(row.sundryAmount);
-    if (!isNaN(sundryAmt) && sundryAmt > 0 && (!row.sundryDetails || row.sundryDetails.trim() === '')) {
-      errors.push(`${journalLabel} Row ${rowNum}: Sundry Amount entered but Sundry Details is missing.`);
+    // Sundry consistency
+    const sundryAmt = parseFloat(row.sundryAmount) || 0;
+    const hasSundryDetails = row.sundryDetails && row.sundryDetails.trim() !== '';
+
+    if (sundryAmt > 0 && !hasSundryDetails) {
+      errors.push(`${journalLabel} Row ${rowNum}: Sundry Amount (${sundryAmt.toFixed(2)}) entered, but Sundry Details account name is missing.`);
+      hasError = true;
+    } else if (sundryAmt === 0 && hasSundryDetails) {
+      errors.push(`${journalLabel} Row ${rowNum}: Sundry account name "${row.sundryDetails}" specified, but Sundry Amount is missing or zero.`);
+      hasError = true;
     }
 
-    if (journalKey === 'crj') {
-      const aor = parseFloat(row.analysisOfReceipts);
-      const s   = parseFloat(row.sales);
-      const trc = parseFloat(row.tradeReceivablesControl);
-      const sa  = parseFloat(row.sundryAmount);
-      if (!isNaN(aor) && !isNaN(s) && !isNaN(trc) && !isNaN(sa)) {
-        const expected = round2(s + trc + sa);
-        if (Math.abs(round2(aor) - expected) > 0.001) {
-          errors.push(`CRJ Row ${rowNum}: Analysis of Receipts (${aor}) does not match column breakdown (Sales + Trade Receivables Control + Sundry Amount = ${expected}).`);
-        }
-      }
-    }
-
+    // Details / Payee presence check
     if (journalKey === 'cpj') {
-      const bank = parseFloat(row.bank);
-      const w    = parseFloat(row.wages);
-      const p    = parseFloat(row.purchases);
-      const tpc  = parseFloat(row.tradePayablesControl);
-      const sa   = parseFloat(row.sundryAmount);
-      if (!isNaN(bank) && !isNaN(w) && !isNaN(p) && !isNaN(tpc) && !isNaN(sa)) {
-        const expected = round2(w + p + tpc + sa);
-        if (Math.abs(round2(bank) - expected) > 0.001) {
-          errors.push(`CPJ Row ${rowNum}: Bank (${bank}) does not match column breakdown (Wages + Purchases + Trade Payables Control + Sundry Amount = ${expected}).`);
-        }
+      const hasAnyAmt = numericKeys.cpj.some(k => (parseFloat(row[k]) || 0) > 0);
+      if (hasAnyAmt && (!row.payee || row.payee.trim() === '')) {
+        errors.push(`CPJ Row ${rowNum}: Payment amounts entered, but Payee name is blank.`);
+        hasError = true;
+      }
+    } else {
+      const hasAnyAmt = numericKeys[journalKey].some(k => (parseFloat(row[k]) || 0) > 0);
+      if (hasAnyAmt && (!row.details || row.details.trim() === '')) {
+        errors.push(`${journalLabel} Row ${rowNum}: Transaction amounts entered, but Details description is blank.`);
+        hasError = true;
       }
     }
 
-    if (journalKey === 'pcj') {
-      const pct = parseFloat(row.pettyCashTotal);
-      const w   = parseFloat(row.wages);
-      const po  = parseFloat(row.postage);
-      const st  = parseFloat(row.stationery);
-      const sa  = parseFloat(row.sundryAmount);
-      if (!isNaN(pct) && !isNaN(w) && !isNaN(po) && !isNaN(st) && !isNaN(sa)) {
-        const expected = round2(w + po + st + sa);
-        if (Math.abs(round2(pct) - expected) > 0.001) {
-          errors.push(`PCJ Row ${rowNum}: Petty Cash / Total (${pct}) does not match column breakdown (Wages + Postage + Stationery + Sundry Amount = ${expected}).`);
-        }
+    // CRJ balance validation
+    if (journalKey === 'crj') {
+      const aor = parseFloat(row.analysisOfReceipts) || 0;
+      const bank = parseFloat(row.bank) || 0;
+      const s   = parseFloat(row.sales) || 0;
+      const trc = parseFloat(row.tradeReceivablesControl) || 0;
+      const sa  = parseFloat(row.sundryAmount) || 0;
+      const receiptTotal = aor > 0 ? aor : bank;
+      const breakdown = round2(s + trc + sa);
+
+      if (receiptTotal > 0 && breakdown === 0) {
+        errors.push(`CRJ Row ${rowNum}: Money received (${receiptTotal.toFixed(2)}) entered in Analysis/Bank, but no breakdown provided in Sales, Trade Receivables Control, or Sundry.`);
+        hasError = true;
+      } else if (breakdown > 0 && receiptTotal === 0) {
+        errors.push(`CRJ Row ${rowNum}: Breakdown entered (${breakdown.toFixed(2)}), but Analysis of Receipts (or Bank) is empty.`);
+        hasError = true;
+      } else if (receiptTotal > 0 && breakdown > 0 && Math.abs(receiptTotal - breakdown) > 0.001) {
+        errors.push(`CRJ Row ${rowNum}: Analysis of Receipts (${receiptTotal.toFixed(2)}) does not balance with breakdown (Sales: ${s.toFixed(2)} + Trade Receivables: ${trc.toFixed(2)} + Sundry: ${sa.toFixed(2)} = ${breakdown.toFixed(2)}). Difference: ${round2(Math.abs(receiptTotal - breakdown)).toFixed(2)}.`);
+        hasError = true;
       }
+    }
+
+    // CPJ balance validation
+    if (journalKey === 'cpj') {
+      const bank = parseFloat(row.bank) || 0;
+      const w    = parseFloat(row.wages) || 0;
+      const p    = parseFloat(row.purchases) || 0;
+      const tpc  = parseFloat(row.tradePayablesControl) || 0;
+      const sa   = parseFloat(row.sundryAmount) || 0;
+      const breakdown = round2(w + p + tpc + sa);
+
+      if (bank > 0 && breakdown === 0) {
+        errors.push(`CPJ Row ${rowNum}: Bank payment (${bank.toFixed(2)}) entered, but no payment breakdown provided in Wages, Purchases, Trade Payables Control, or Sundry.`);
+        hasError = true;
+      } else if (breakdown > 0 && bank === 0) {
+        errors.push(`CPJ Row ${rowNum}: Payment breakdown entered (${breakdown.toFixed(2)}), but Bank payment column is empty.`);
+        hasError = true;
+      } else if (bank > 0 && breakdown > 0 && Math.abs(bank - breakdown) > 0.001) {
+        errors.push(`CPJ Row ${rowNum}: Bank payment (${bank.toFixed(2)}) does not match payment columns (Wages: ${w.toFixed(2)} + Purchases: ${p.toFixed(2)} + Trade Payables: ${tpc.toFixed(2)} + Sundry: ${sa.toFixed(2)} = ${breakdown.toFixed(2)}). Difference: ${round2(Math.abs(bank - breakdown)).toFixed(2)}.`);
+        hasError = true;
+      }
+    }
+
+    // PCJ balance validation
+    if (journalKey === 'pcj') {
+      const pct = parseFloat(row.pettyCashTotal) || 0;
+      const w   = parseFloat(row.wages) || 0;
+      const po  = parseFloat(row.postage) || 0;
+      const st  = parseFloat(row.stationery) || 0;
+      const sa  = parseFloat(row.sundryAmount) || 0;
+      const breakdown = round2(w + po + st + sa);
+
+      if (pct > 0 && breakdown === 0) {
+        errors.push(`PCJ Row ${rowNum}: Petty Cash / Total (${pct.toFixed(2)}) entered, but no expense breakdown provided in Wages, Postage, Stationery, or Sundry.`);
+        hasError = true;
+      } else if (breakdown > 0 && pct === 0) {
+        errors.push(`PCJ Row ${rowNum}: Expense breakdown entered (${breakdown.toFixed(2)}), but Petty Cash / Total is empty.`);
+        hasError = true;
+      } else if (pct > 0 && breakdown > 0 && Math.abs(pct - breakdown) > 0.001) {
+        errors.push(`PCJ Row ${rowNum}: Petty Cash / Total (${pct.toFixed(2)}) does not match expense columns (Wages: ${w.toFixed(2)} + Postage: ${po.toFixed(2)} + Stationery: ${st.toFixed(2)} + Sundry: ${sa.toFixed(2)} = ${breakdown.toFixed(2)}). Difference: ${round2(Math.abs(pct - breakdown)).toFixed(2)}.`);
+        hasError = true;
+      }
+    }
+
+    if (hasError) {
+      rowErrors.add(i);
+    } else {
+      rowBalanced.add(i);
     }
   });
 
-  return errors;
+  return { errors, rowErrors, rowBalanced };
+}
+
+// ============================================================
+// RENDER TABLE FOOT TOTALS
+// ============================================================
+
+function renderTotalsFoot(journalKey, totals) {
+  const tfoot = document.getElementById('tfoot-' + journalKey);
+  if (!tfoot) return;
+  tfoot.innerHTML = '';
+  tfoot.style.display = 'table-footer-group';
+
+  const tr = document.createElement('tr');
+  schemas[journalKey].forEach((col, idx) => {
+    const td = document.createElement('td');
+    if (idx === 0) {
+      td.textContent = 'Totals';
+      td.classList.add('totals-label');
+    } else if (numericKeys[journalKey].includes(col.key)) {
+      td.textContent = round2(totals[col.key]).toFixed(2);
+    } else {
+      td.textContent = '';
+    }
+    tr.appendChild(td);
+  });
+
+  // Action column blank cell
+  const actionTd = document.createElement('td');
+  actionTd.textContent = '';
+  tr.appendChild(actionTd);
+
+  tfoot.appendChild(tr);
 }
 
 // ============================================================
@@ -344,23 +439,49 @@ function validateJournal(journalKey) {
 function onFinish() {
   syncStateFromDOM();
 
+  const crjVal = validateJournal('crj');
+  const cpjVal = validateJournal('cpj');
+  const pcjVal = validateJournal('pcj');
+
   const allErrors = [
-    ...validateJournal('crj'),
-    ...validateJournal('cpj'),
-    ...validateJournal('pcj')
+    ...crjVal.errors,
+    ...cpjVal.errors,
+    ...pcjVal.errors
   ];
 
+  const results = { crj: crjVal, cpj: cpjVal, pcj: pcjVal };
+
+  // Update row visual feedback in each table
+  ['crj', 'cpj', 'pcj'].forEach(jk => {
+    const tbody = document.getElementById('tbody-' + jk);
+    if (!tbody) return;
+    const trs = tbody.querySelectorAll('tr');
+    trs.forEach((tr, idx) => {
+      tr.classList.remove('row-error', 'row-balanced');
+      if (results[jk].rowErrors.has(idx)) {
+        tr.classList.add('row-error');
+      } else if (results[jk].rowBalanced.has(idx)) {
+        tr.classList.add('row-balanced');
+      }
+    });
+  });
+
+  // Compute column totals and display inside each table's tfoot
   const crjTotals = computeTotals('crj');
   const cpjTotals = computeTotals('cpj');
   const pcjTotals = computeTotals('pcj');
 
+  renderTotalsFoot('crj', crjTotals);
+  renderTotalsFoot('cpj', cpjTotals);
+  renderTotalsFoot('pcj', pcjTotals);
+
   const panel = document.getElementById('results-panel');
   panel.style.display = 'block';
 
-  let html = '<h3>Results</h3>';
+  let html = '<h3>Results & Feedback</h3>';
 
   html += '<div class="totals-panel">';
-  html += '<h4>Totals</h4>';
+  html += '<h4>Column Totals (Posted to General Ledger)</h4>';
 
   const journalMeta = [
     { key: 'crj', label: 'Cash Receipts Journal (CRJ)', totals: crjTotals },
@@ -382,14 +503,16 @@ function onFinish() {
 
   if (allErrors.length > 0) {
     html += '<div class="errors-panel">';
-    html += '<h4>Errors</h4>';
+    html += `<h4>Mistakes Detected (${allErrors.length})</h4>`;
     html += '<ul>';
     allErrors.forEach(err => {
       html += `<li>${escapeHtml(err)}</li>`;
     });
-    html += '</ul></div>';
+    html += '</ul>';
+    html += '<p style="margin-top:0.75rem;font-size:0.85rem;color:#7b241c;">Rows highlighted in red have discrepancies. Review the accounting rules: receipts/payments must balance with their breakdown columns.</p>';
+    html += '</div>';
   } else {
-    html += '<div class="no-errors-panel"><p>No errors found — your entries look correct.</p></div>';
+    html += '<div class="no-errors-panel"><p>No errors found — all rows balance and your entries are correct!</p></div>';
   }
 
   panel.innerHTML = html;
