@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Accounting Practice System</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://unpkg.com/docx@8/build/index.js"></script>
+</head>
+<body>
+
+  <header>
+    <h1>Accounting Practice System</h1>
+    <div class="mode-toggle">
+      <button id="btn-guided" class="mode-btn active" onclick="switchMode('guided')">Guided</button>
+      <button id="btn-free" class="mode-btn" onclick="switchMode('free')">Free</button>
+    </div>
+  </header>
+
+  <main>
+    <!-- Cash Receipts Journal -->
+    <section class="journal-section" id="section-crj">
+      <h2>Cash Receipts Journal (CRJ)</h2>
+      <p class="journal-desc">Records all money received by the business.</p>
+      <div class="table-container">
+        <table id="table-crj">
+          <thead>
+            <tr>
+              <th>Doc No</th>
+              <th>Day</th>
+              <th>Details</th>
+              <th>Analysis of Receipts</th>
+              <th>Bank</th>
+              <th>Sales</th>
+              <th>Trade Receivables Control</th>
+              <th>Sundry Amount</th>
+              <th>Fol</th>
+              <th>Sundry Details</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="tbody-crj"></tbody>
+        </table>
+      </div>
+      <button class="add-row-btn" onclick="addRow('crj')">Add Row</button>
+    </section>
+
+    <!-- Cash Payments Journal -->
+    <section class="journal-section" id="section-cpj">
+      <h2>Cash Payments Journal (CPJ)</h2>
+      <p class="journal-desc">Records all money paid out by the business.</p>
+      <div class="table-container">
+        <table id="table-cpj">
+          <thead>
+            <tr>
+              <th>Doc No</th>
+              <th>Day</th>
+              <th>Payee</th>
+              <th>Bank</th>
+              <th>Wages</th>
+              <th>Purchases</th>
+              <th>Trade Payables Control</th>
+              <th>Sundry Amount</th>
+              <th>Fol</th>
+              <th>Sundry Details</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="tbody-cpj"></tbody>
+        </table>
+      </div>
+      <button class="add-row-btn" onclick="addRow('cpj')">Add Row</button>
+    </section>
+
+    <!-- Petty Cash Journal -->
+    <section class="journal-section" id="section-pcj">
+      <h2>Petty Cash Journal (PCJ)</h2>
+      <p class="journal-desc">Records small cash payments made from petty cash.</p>
+      <div class="table-container">
+        <table id="table-pcj">
+          <thead>
+            <tr>
+              <th>Doc No</th>
+              <th>Day</th>
+              <th>Details</th>
+              <th>Petty Cash / Total</th>
+              <th>Wages</th>
+              <th>Postage</th>
+              <th>Stationery</th>
+              <th>Sundry Amount</th>
+              <th>Fol</th>
+              <th>Sundry Details</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="tbody-pcj"></tbody>
+        </table>
+      </div>
+      <button class="add-row-btn" onclick="addRow('pcj')">Add Row</button>
+    </section>
+
+    <!-- Results Panel -->
+    <div id="results-panel" class="results-panel" style="display:none;"></div>
+  </main>
+
+  <div class="action-bar">
+    <button class="btn-finish" onclick="onFinish()">Finish</button>
+    <button class="btn-download" onclick="onDownload()">Download (.docx)</button>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
