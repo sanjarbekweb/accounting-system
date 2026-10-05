@@ -31,6 +31,13 @@ header h1 {
   font-size: 1.4rem;
   font-weight: 700;
   color: #2c3e50;
+  line-height: 1.2;
+}
+
+.subtitle {
+  font-size: 0.85rem;
+  color: #555;
+  margin-top: 0.2rem;
 }
 
 /* ---- Mode Toggle ---- */
@@ -343,3 +350,35 @@ th.col-action {
   font-weight: 600;
   margin: 0;
 }
+
+/* ---- Table Totals Foot (In-Table Footer) ---- */
+.table-totals-foot tr {
+  background: #eaeded;
+  border-top: 2px solid #2c3e50;
+  border-bottom: 2px solid #2c3e50;
+  font-weight: 700;
+}
+
+.table-totals-foot td {
+  padding: 6px 8px;
+  font-size: 0.85rem;
+  color: #2c3e50;
+  border: 1px solid #bdc3c7;
+}
+
+.table-totals-foot td.totals-label {
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* ---- Row Feedback Status ---- */
+tbody tr.row-error {
+  background: #fdf2f2 !important;
+  border-left: 3px solid #c0392b;
+}
+
+tbody tr.row-balanced {
+  border-left: 3px solid #27ae60;
+}
+
