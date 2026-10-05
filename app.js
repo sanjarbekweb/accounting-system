@@ -22,45 +22,42 @@ const journals = {
 
 const schemas = {
   crj: [
-    { key: 'docNo',                   label: 'Doc No',                   type: 'text'   },
+    { key: 'docNo',                   label: 'Doc no',                   type: 'text'   },
     { key: 'day',                     label: 'Day',                      type: 'number' },
-    { key: 'details',                 label: 'Details',                  type: 'text',
-      guidedOptions: ['Sales', 'Capital', 'Rent income', 'Trade receivables', 'Interest income', 'Commission received'] },
-    { key: 'analysisOfReceipts',      label: 'Analysis of Receipts',     type: 'number' },
+    { key: 'details',                 label: 'Details',                  type: 'text'   }, // User writes details manually
+    { key: 'analysisOfReceipts',      label: 'Analysis of receipts',     type: 'number' },
     { key: 'bank',                    label: 'Bank',                     type: 'number' },
     { key: 'sales',                   label: 'Sales',                    type: 'number' },
-    { key: 'tradeReceivablesControl', label: 'Trade Receivables Control', type: 'number' },
-    { key: 'sundryAmount',            label: 'Sundry Amount',            type: 'number' },
-    { key: 'fol',                     label: 'Fol',                      type: 'text', fol: true },
-    { key: 'sundryDetails',           label: 'Sundry Details',           type: 'text',
+    { key: 'tradeReceivablesControl', label: 'Trade receivables control', type: 'number' },
+    { key: 'sundryAmount',            label: 'Amount',                   type: 'number', isSundry: true },
+    { key: 'fol',                     label: 'Fol',                      type: 'text', fol: true, isSundry: true },
+    { key: 'sundryDetails',           label: 'Details',                  type: 'text', isSundry: true,
       guidedOptions: ['Capital', 'Rent income', 'Interest income', 'Commission received', 'Drawings'] }
   ],
   cpj: [
-    { key: 'docNo',                 label: 'Doc No',                   type: 'text'   },
+    { key: 'docNo',                 label: 'Doc no',                   type: 'text'   },
     { key: 'day',                   label: 'Day',                      type: 'number' },
-    { key: 'payee',                 label: 'Payee',                    type: 'text',
-      guidedOptions: ['Cash', 'Waltons', 'P Pink', 'AA Traders', 'Uzbek printers', 'Fieri Design', 'CNA', 'Markell Ltd', 'Mr Krisel', 'Dulux', 'Dassin Motors', 'PostNet', 'Bela Belay Ltd', 'Holman Traders', 'Coca Cola', 'Standard Bank', 'Engen'] },
+    { key: 'payee',                 label: 'Payee',                    type: 'text'   }, // User writes payee manually
     { key: 'bank',                  label: 'Bank',                     type: 'number' },
     { key: 'wages',                 label: 'Wages',                    type: 'number' },
     { key: 'purchases',             label: 'Purchases',                type: 'number' },
-    { key: 'tradePayablesControl',  label: 'Trade Payables Control',   type: 'number' },
-    { key: 'sundryAmount',          label: 'Sundry Amount',            type: 'number' },
-    { key: 'fol',                   label: 'Fol',                      type: 'text', fol: true },
-    { key: 'sundryDetails',         label: 'Sundry Details',           type: 'text',
+    { key: 'tradePayablesControl',  label: 'Trade payables control',   type: 'number' },
+    { key: 'sundryAmount',          label: 'Amount',                   type: 'number', isSundry: true },
+    { key: 'fol',                   label: 'Fol',                      type: 'text', fol: true, isSundry: true },
+    { key: 'sundryDetails',         label: 'Details',                  type: 'text', isSundry: true,
       guidedOptions: ['Furniture', 'Equipment', 'Vehicle', 'Drawings', 'Wages', 'Rent expense', 'Interest expense', 'Stationery', 'Repairs', 'Trading stock', 'Trade payables control'] }
   ],
   pcj: [
-    { key: 'docNo',         label: 'Doc No',            type: 'text'   },
+    { key: 'docNo',         label: 'Doc no',            type: 'text'   },
     { key: 'day',           label: 'Day',               type: 'number' },
-    { key: 'details',       label: 'Details',           type: 'text',
-      guidedOptions: ['Stamps', 'Cleaning', 'Envelopes', 'Milk and coffee', 'Wages', 'Postage', 'Stationery', 'Refreshments', 'Drawings', 'Donations', 'Petrol', 'Sundry expenses'] },
-    { key: 'pettyCashTotal', label: 'Petty Cash / Total', type: 'number' },
+    { key: 'details',       label: 'Details',           type: 'text'   }, // User writes details manually
+    { key: 'pettyCashTotal', label: 'Petty cash/total', type: 'number' },
     { key: 'wages',         label: 'Wages',             type: 'number' },
     { key: 'postage',       label: 'Postage',           type: 'number' },
     { key: 'stationery',    label: 'Stationery',        type: 'number' },
-    { key: 'sundryAmount',  label: 'Sundry Amount',     type: 'number' },
-    { key: 'fol',           label: 'Fol',               type: 'text', fol: true },
-    { key: 'sundryDetails', label: 'Sundry Details',    type: 'text',
+    { key: 'sundryAmount',  label: 'Amount',            type: 'number', isSundry: true },
+    { key: 'fol',           label: 'Fol',               type: 'text', fol: true, isSundry: true },
+    { key: 'sundryDetails', label: 'Details',           type: 'text', isSundry: true,
       guidedOptions: ['Refreshments', 'Drawings', 'Cleaning', 'Donations', 'Petrol', 'Sundry expenses', 'Repairs'] }
   ]
 };
@@ -111,6 +108,15 @@ function renderJournal(journalKey) {
       const td = document.createElement('td');
       if (col.fol) td.classList.add('col-fol');
 
+      // Alignment classes for real accounting ledger look
+      if (col.type === 'number' && col.key !== 'day') {
+        td.classList.add('cell-number');
+      } else if (col.key === 'day' || col.fol) {
+        td.classList.add('cell-center');
+      } else {
+        td.classList.add('cell-text');
+      }
+
       const useSelect = mode === 'guided' && col.guidedOptions;
 
       if (useSelect) {
@@ -120,7 +126,7 @@ function renderJournal(journalKey) {
 
         const blankOpt = document.createElement('option');
         blankOpt.value = '';
-        blankOpt.textContent = '-- select --';
+        blankOpt.textContent = '-- select account --';
         select.appendChild(blankOpt);
 
         col.guidedOptions.forEach(opt => {
@@ -164,6 +170,31 @@ function renderJournal(journalKey) {
 
   tbody.addEventListener('input', (e) => handleCellInput(e, journalKey));
   tbody.addEventListener('change', (e) => handleCellInput(e, journalKey));
+
+  // Practical keyboard navigation (Enter moves down / adds row, Tab moves across)
+  tbody.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      const target = e.target;
+      const rowIndex = parseInt(target.dataset.rowIndex, 10);
+      const key = target.dataset.key;
+      const allInputs = Array.from(tbody.querySelectorAll(`input[data-key="${key}"], select[data-key="${key}"]`));
+      if (allInputs[rowIndex + 1]) {
+        allInputs[rowIndex + 1].focus();
+        if (allInputs[rowIndex + 1].select) allInputs[rowIndex + 1].select();
+      } else {
+        // At the bottom row: append row and move down to new row
+        addRow(journalKey);
+        setTimeout(() => {
+          const updated = Array.from(tbody.querySelectorAll(`input[data-key="${key}"], select[data-key="${key}"]`));
+          if (updated[rowIndex + 1]) {
+            updated[rowIndex + 1].focus();
+            if (updated[rowIndex + 1].select) updated[rowIndex + 1].select();
+          }
+        }, 10);
+      }
+      e.preventDefault();
+    }
+  });
 }
 
 // ============================================================
@@ -533,63 +564,125 @@ function onDownload() {
 
   const {
     Document, Packer, Paragraph, Table, TableRow, TableCell,
-    TextRun, HeadingLevel, WidthType
+    TextRun, HeadingLevel, WidthType, AlignmentType, ShadingType
   } = docx;
 
   const journalDefs = [
-    { key: 'crj', label: 'Cash Receipts Journal (CRJ)' },
-    { key: 'cpj', label: 'Cash Payments Journal (CPJ)' },
-    { key: 'pcj', label: 'Petty Cash Journal (PCJ)'    }
+    {
+      key: 'crj',
+      defaultTitle: 'Cash Receipts journal of blue skies for January 2025',
+      col1Headers: ['Doc no', 'Day', 'Details', 'Analysis of receipts', 'Bank', 'Sales', 'Trade receivables control']
+    },
+    {
+      key: 'cpj',
+      defaultTitle: 'Cash Payments journal of blue skies for January 2025',
+      col1Headers: ['Doc no', 'Day', 'Payee', 'Bank', 'Wages', 'Purchases', 'Trade payables control']
+    },
+    {
+      key: 'pcj',
+      defaultTitle: 'Petty Cash journal of blue skies for January 2025',
+      col1Headers: ['Doc no', 'Day', 'Details', 'Petty cash/total', 'Wages', 'Postage', 'Stationery']
+    }
   ];
 
-  function makeCell(text, bold) {
+  function makeWordHeaderCell(text, rowSpan, colSpan) {
+    const opts = {
+      children: [
+        new Paragraph({
+          alignment: AlignmentType.CENTER,
+          children: [new TextRun({ text: String(text || ''), bold: true, size: 18 })]
+        })
+      ],
+      shading: { type: ShadingType.CLEAR, fill: '969BA1' },
+      margins: { top: 60, bottom: 60, left: 60, right: 60 }
+    };
+    if (rowSpan && rowSpan > 1) opts.rowSpan = rowSpan;
+    if (colSpan && colSpan > 1) opts.columnSpan = colSpan;
+    return new TableCell(opts);
+  }
+
+  function makeWordDataCell(text, align, bold) {
+    let pAlign = AlignmentType.LEFT;
+    if (align === 'right') pAlign = AlignmentType.RIGHT;
+    if (align === 'center') pAlign = AlignmentType.CENTER;
+
     return new TableCell({
       children: [
         new Paragraph({
+          alignment: pAlign,
           children: [new TextRun({ text: String(text || ''), bold: !!bold, size: 18 })]
         })
       ],
-      margins: { top: 60, bottom: 60, left: 80, right: 80 }
+      margins: { top: 40, bottom: 40, left: 60, right: 60 }
     });
   }
 
   const docSections = [];
 
-  journalDefs.forEach(({ key, label }) => {
+  journalDefs.forEach(({ key, defaultTitle, col1Headers }) => {
     const schema = schemas[key];
     const rows   = journals[key];
     const totals = computeTotals(key);
 
-    const headerCells = schema.map(col => makeCell(col.label, true));
-    const headerRow = new TableRow({ children: headerCells, tableHeader: true });
+    // Retrieve live title from DOM if edited by user
+    const titleEl = document.querySelector(`#table-${key} .journal-title-header`);
+    const liveTitle = titleEl ? titleEl.textContent.trim() : defaultTitle;
 
+    // Row 1: Title row spanning 10 columns
+    const titleRow = new TableRow({
+      children: [
+        new TableCell({
+          columnSpan: 10,
+          shading: { type: ShadingType.CLEAR, fill: '969BA1' },
+          children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: liveTitle, bold: true, size: 20 })] })],
+          margins: { top: 80, bottom: 80, left: 60, right: 60 }
+        })
+      ]
+    });
+
+    // Row 2: Top header row (7 main columns spanning 2 rows + Sundry account spanning 3 cols)
+    const headerRow1Cells = col1Headers.map(h => makeWordHeaderCell(h, 2, 1));
+    headerRow1Cells.push(makeWordHeaderCell('Sundry account', 1, 3));
+    const headerRow1 = new TableRow({ children: headerRow1Cells, tableHeader: true });
+
+    // Row 3: Sub header row under Sundry account (Amount, Fol, Details)
+    const headerRow2Cells = [
+      makeWordHeaderCell('Amount', 1, 1),
+      makeWordHeaderCell('Fol', 1, 1),
+      makeWordHeaderCell('Details', 1, 1)
+    ];
+    const headerRow2 = new TableRow({ children: headerRow2Cells, tableHeader: true });
+
+    // Data rows
     const dataRows = rows.map(rowData => {
-      const cells = schema.map(col => makeCell(rowData[col.key] || ''));
+      const cells = schema.map(col => {
+        let align = 'left';
+        if (numericKeys[key].includes(col.key)) align = 'right';
+        if (col.key === 'day' || col.fol) align = 'center';
+        return makeWordDataCell(rowData[col.key] || '', align, false);
+      });
       return new TableRow({ children: cells });
     });
 
+    // Totals row
     const totalsCells = schema.map((col, idx) => {
-      if (idx === 0) return makeCell('Totals', true);
+      if (idx === 0) return makeWordDataCell('Totals', 'center', true);
       if (numericKeys[key].includes(col.key)) {
-        return makeCell(round2(totals[col.key]).toFixed(2), true);
+        return makeWordDataCell(round2(totals[col.key]).toFixed(2), 'right', true);
       }
-      return makeCell('');
+      return makeWordDataCell('', 'left', false);
     });
     const totalsRow = new TableRow({ children: totalsCells });
 
     const docTable = new Table({
-      rows: [headerRow, ...dataRows, totalsRow],
+      rows: [titleRow, headerRow1, headerRow2, ...dataRows, totalsRow],
       width: { size: 100, type: WidthType.PERCENTAGE }
     });
 
     docSections.push(
-      new Paragraph({
-        text: label,
-        heading: HeadingLevel.HEADING_2,
-        spacing: { before: 300, after: 150 }
-      }),
+      new Paragraph({ text: '', spacing: { before: 200 } }),
       docTable,
-      new Paragraph({ text: '', spacing: { after: 200 } })
+      new Paragraph({ text: '', spacing: { after: 300 } })
     );
   });
 
@@ -597,7 +690,7 @@ function onDownload() {
     sections: [{
       children: [
         new Paragraph({
-          text: 'Accounting Journals',
+          text: 'Accounting Practice System — Completed Journals',
           heading: HeadingLevel.HEADING_1,
           spacing: { after: 300 }
         }),
